@@ -1,4 +1,4 @@
-from transformers import ViTFeatureExtractor, ViTModel
+from transformers import HubertForSequenceClassification
 from PIL import Image
 import argparse
 import os
@@ -21,16 +21,10 @@ parser.add_argument(
         type=int,
         default=1,
         required=False)
-
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-else:
-    device = torch.device('cpu')
-
+'''
 # model initialization
 feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k", use_auth_token = True)
 model = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
-model.to(device)
 model.eval()
 
 args = parser.parse_args()
@@ -49,7 +43,7 @@ for video_name in tqdm(os.listdir(args.input_folder)):
     for i in range(n_batches):
         selected_frames = frames[i*args.batch_size:min(len(frames), (i+1)*args.batch_size)]
         images = [Image.open(args.input_folder + "/" + video_name + "/" + frame) for frame in selected_frames]
-        inputs = feature_extractor(images = images, return_tensors = "pt").to(device)
+        inputs = feature_extractor(images = images, return_tensors = "pt")
         outputs = model(**inputs)
         last_hidden_states = outputs.last_hidden_state[:, 0, :]
         if image_embeddings == None:
@@ -58,3 +52,12 @@ for video_name in tqdm(os.listdir(args.input_folder)):
             image_embeddings = torch.cat((image_embeddings, last_hidden_states), 0)
         
     torch.save(image_embeddings, args.output_folder + "/" + video_name + ".pt")
+'''
+
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+else:
+    device = torch.device('cpu')
+
+audio_model = HubertForSequenceClassification.from_pretrained("superb/hubert-base-superb-er", torch_dtype="float16")
+audio_model = audio_model.to(device)
