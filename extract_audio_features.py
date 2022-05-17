@@ -70,7 +70,7 @@ for audio in tqdm(os.listdir(args.input_folder)):
     audio_embeddings = None
     for i in range(n_batches):
         selected_windows = windows[i*args.batch_size:min(args.n_fragments, (i+1)*args.batch_size)]
-        inputs = feature_extractor(windows, return_tensors="pt", sampling_rate=16000, padding="max_length", max_length=32000, truncation=True).input_values   # processes audio frames
+        inputs = feature_extractor(windows, return_tensors="pt", sampling_rate=16000, padding="max_length", max_length=16000, truncation=True).input_values   # processes audio frames
         embeddings = model(inputs).embeddings
         if audio_embeddings == None:
             audio_embeddings = embeddings
