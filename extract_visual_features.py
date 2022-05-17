@@ -47,7 +47,7 @@ already_processed = os.listdir(args.output_folder)
 
 for video_name in tqdm(os.listdir(args.input_folder)): 
 
-    if video_name == ".DS_Store":
+    if video_name.startswith("."):
         continue
 
     if args.incremental and video_name + ".pt" in already_processed:
