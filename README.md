@@ -34,3 +34,13 @@ python extract_audio_features.py \
   --batch_size 32 \
   --incremental False
 ```
+
+Extract visual features from frames:
+
+```
+python extract_textual_features.py \
+  --input_folder data/frames \
+  --output_folder data/features/textual \
+  --batch_size 32 \
+  --incremental False
+```
