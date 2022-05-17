@@ -33,8 +33,6 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
-device = "cpu"
-
 # model initialization
 feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k", use_auth_token = True)
 model = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
@@ -52,7 +50,7 @@ for video_name in tqdm(os.listdir(args.input_folder)):
     if video_name == ".DS_Store":
         continue
 
-    if args.incremental and video_name in already_processed:
+    if args.incremental and video_name + ".pt" in already_processed:
         continue
 
     frames = os.listdir(args.input_folder + "/" + video_name)
