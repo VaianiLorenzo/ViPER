@@ -41,6 +41,7 @@ Extract visual features from frames:
 python extract_textual_features.py \
   --input_folder data/frames \
   --output_folder data/features/textual \
+  --clip_checkpoint_path data/clip_model/model.pt \
   --batch_size 32 \
   --incremental False
 ```
