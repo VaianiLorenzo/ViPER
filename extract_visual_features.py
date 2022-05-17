@@ -21,11 +21,19 @@ parser.add_argument(
         type=int,
         default=1,
         required=False)
+parser.add_argument(
+        "--incremental",
+        help="Default False. If True process only videos which name is not present in the output folder",
+        type=bool,
+        default=False,
+        required=False)
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
+
+device = "cpu"
 
 # model initialization
 feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k", use_auth_token = True)
@@ -37,7 +45,16 @@ args = parser.parse_args()
 if not os.path.exists(args.output_folder):
         os.mkdir(args.output_folder)
 
-for video_name in tqdm(os.listdir(args.input_folder)):
+already_processed = os.listdir(args.output_folder)
+
+for video_name in tqdm(os.listdir(args.input_folder)): 
+
+    if video_name == ".DS_Store":
+        continue
+
+    if args.incremental and video_name in already_processed:
+        continue
+
     frames = os.listdir(args.input_folder + "/" + video_name)
 
     if len(frames) % args.batch_size == 0:
