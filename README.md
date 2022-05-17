@@ -31,6 +31,6 @@ python extract_audio_features.py \
   --input_folder data/wav \
   --output_folder data/features/audio \
   --n_fragments 32 \
-  --batch_size 32
+  --batch_size 32 \
   --incremental False
 ```
