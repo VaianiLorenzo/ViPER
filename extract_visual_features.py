@@ -34,7 +34,7 @@ else:
     device = torch.device('cpu')
 
 # model initialization
-feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k", use_auth_token = True)
+feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k")
 model = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
 model.to(device)
 model.eval()
