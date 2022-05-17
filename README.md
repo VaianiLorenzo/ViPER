@@ -20,7 +20,8 @@ Extract visual features from frames:
 python extract_visual_features.py \
   --input_folder data/frames \
   --output_folder data/features/visual \
-  --batch_size 16
+  --batch_size 16 \
+  --incremental False
 ```
 
 Extract audio features from raw audio files:
