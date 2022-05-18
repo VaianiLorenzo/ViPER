@@ -54,6 +54,8 @@ for video_name in tqdm(os.listdir(args.input_folder)):
         continue
 
     frames = os.listdir(args.input_folder + "/" + video_name)
+    indexes = [int((f.split("_")[1]).split(".")[0]) for f in frames]
+    _, frames = zip(*sorted(zip(indexes, frames)))
 
     if len(frames) % args.batch_size == 0:
         n_batches = int(len(frames) / args.batch_size)

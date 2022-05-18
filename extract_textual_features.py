@@ -40,8 +40,6 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
-device = torch.device('cpu')
-
 args = parser.parse_args()
 if not os.path.exists(args.output_folder):
         os.mkdir(args.output_folder)
@@ -126,6 +124,8 @@ for video_name in tqdm(os.listdir(args.input_folder)):
         continue
 
     frames = os.listdir(args.input_folder + "/" + video_name)
+    indexes = [int((f.split("_")[1]).split(".")[0]) for f in frames]
+    _, frames = zip(*sorted(zip(indexes, frames)))
 
     if len(frames) % args.batch_size == 0:
         n_batches = int(len(frames) / args.batch_size)
@@ -147,7 +147,7 @@ for video_name in tqdm(os.listdir(args.input_folder)):
         for j in range(len(similarity)):
             sentences.append(templates[list(similarity[j]).index(max(similarity[j]))])
 
-        inputs = tokenizer(sentences, return_tensors="pt", padding='max_length', max_length=16, truncation=True).to(torch.device("cuda"))
+        inputs = tokenizer(sentences, return_tensors="pt", padding='max_length', max_length=16, truncation=True).to(device)
         outputs = text_model(**inputs)
         cls_tokens = outputs.last_hidden_state[:, 0, :]
 
