@@ -1,12 +1,11 @@
-from transformers import ViTFeatureExtractor, ViTModel
 from PIL import Image
 import argparse
 import os
 from tqdm import tqdm
 import torch
 import numpy as np
-from pkg_resources import packaging
 import clip
+from transformers import RobertaTokenizer, RobertaModel
 
 
 parser = argparse.ArgumentParser(description="Extract visual features from frames")
@@ -49,7 +48,6 @@ if not os.path.exists(args.output_folder):
 
 model, preprocess = clip.load("ViT-B/32")
 model.cuda().eval()
-#model.cpu().eval()
 
 checkpoint = torch.load(args.clip_checkpoint_path)
 model.load_state_dict(checkpoint["model_state_dict"])
@@ -100,12 +98,22 @@ templates = ["This face is feeling adoration",
 "The face on this picture is feeling surprised",
 "Surprised face",
 "This face looks surprised",
-"Surprise appears on this face"]
+"Surprise appears on this face",
+"This face is neutral",
+"The facial expression on this face is neutral",
+"In this face there is no emotion",
+"There is no emotion in this face",
+"This face is emotionless",
+"No emotion is evident in this face"]
 
 text_tokens = clip.tokenize(templates).cuda()
 with torch.no_grad():
     text_features = model.encode_text(text_tokens).float()
     text_features /= text_features.norm(dim=-1, keepdim=True)
+
+tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+model = RobertaModel.from_pretrained("roberta-base").to(device).eval()
+
 
 already_processed = os.listdir(args.output_folder)
 
@@ -139,12 +147,14 @@ for video_name in tqdm(os.listdir(args.input_folder)):
         for j in range(len(similarity)):
             sentences.append(templates[list(similarity[j]).index(max(similarity[j]))])
 
-        ...
+        inputs = tokenizer(sentences, return_tensors="pt", padding='max_length', max_length=16, truncation=True).to(torch.device("cuda"))
+        outputs = model(**inputs)
+        cls_tokens = outputs.last_hidden_state[:, 0, :]
 
         if text_embeddings == None:
-            text_embeddings = ...
+            text_embeddings = cls_tokens
         else:
-            text_embeddings = torch.cat((text_embeddings, ...), 0)
+            text_embeddings = torch.cat((text_embeddings, cls_tokens), 0)
         
     torch.save(text_embeddings, args.output_folder + "/" + video_name + ".pt")
 
