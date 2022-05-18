@@ -46,11 +46,11 @@ args = parser.parse_args()
 if not os.path.exists(args.output_folder):
         os.mkdir(args.output_folder)
 
-model, preprocess = clip.load("ViT-B/32")
-model.cuda().eval()
+clip_model, preprocess = clip.load("ViT-B/32")
+clip_model.cuda().eval()
 
 checkpoint = torch.load(args.clip_checkpoint_path)
-model.load_state_dict(checkpoint["model_state_dict"])
+clip_model.load_state_dict(checkpoint["model_state_dict"])
 
 templates = ["This face is feeling adoration",
 "A face filled with adoration",
@@ -108,11 +108,11 @@ templates = ["This face is feeling adoration",
 
 text_tokens = clip.tokenize(templates).cuda()
 with torch.no_grad():
-    text_features = model.encode_text(text_tokens).float()
+    text_features = clip_model.encode_text(text_tokens).float()
     text_features /= text_features.norm(dim=-1, keepdim=True)
 
 tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
-model = RobertaModel.from_pretrained("roberta-base").to(device).eval()
+text_model = RobertaModel.from_pretrained("roberta-base").to(device).eval()
 
 
 already_processed = os.listdir(args.output_folder)
@@ -138,7 +138,7 @@ for video_name in tqdm(os.listdir(args.input_folder)):
         images = [preprocess(Image.open(args.input_folder + "/" + video_name + "/" + frame).convert("RGB")) for frame in selected_frames]
         images = torch.tensor(np.stack(images)).cuda()
         with torch.no_grad():
-            image_features = model.encode_image(images).float()
+            image_features = clip_model.encode_image(images).float()
 
         image_features /= image_features.norm(dim=-1, keepdim=True)
         similarity = image_features.cpu().numpy() @ text_features.cpu().numpy().T
@@ -148,7 +148,7 @@ for video_name in tqdm(os.listdir(args.input_folder)):
             sentences.append(templates[list(similarity[j]).index(max(similarity[j]))])
 
         inputs = tokenizer(sentences, return_tensors="pt", padding='max_length', max_length=16, truncation=True).to(torch.device("cuda"))
-        outputs = model(**inputs)
+        outputs = text_model(**inputs)
         cls_tokens = outputs.last_hidden_state[:, 0, :]
 
         if text_embeddings == None:
