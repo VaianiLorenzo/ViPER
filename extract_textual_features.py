@@ -28,12 +28,10 @@ parser.add_argument(
         type=int,
         default=1,
         required=False)
-parser.add_argument(
-        "--incremental",
-        help="Default False. If True process only videos which name is not present in the output folder",
-        type=bool,
-        default=False,
-        required=False)
+incremental_parser = parser.add_mutually_exclusive_group(required=False)
+incremental_parser.add_argument('--incremental', dest='incremental', action='store_true')
+incremental_parser.add_argument('--no-incremental', dest='incremental', action='store_false')
+parser.set_defaults(incremental=False)
 
 
 if torch.cuda.is_available():
