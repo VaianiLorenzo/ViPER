@@ -35,7 +35,7 @@ python extract_audio_features.py \
   --incremental False
 ```
 
-Extract visual features from frames:
+Extract textual features from frames:
 
 ```
 python extract_textual_features.py \
