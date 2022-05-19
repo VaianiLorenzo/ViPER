@@ -1,3 +1,4 @@
+from cgitb import text
 from PIL import Image
 import argparse
 import os
@@ -45,10 +46,11 @@ if not os.path.exists(args.output_folder):
         os.mkdir(args.output_folder)
 
 clip_model, preprocess = clip.load("ViT-B/32")
-clip_model.cuda().eval()
+clip_model.cuda()
 
 checkpoint = torch.load(args.clip_checkpoint_path)
 clip_model.load_state_dict(checkpoint["model_state_dict"])
+clip_model.eval()
 
 templates = ["This face is feeling adoration",
 "A face filled with adoration",
@@ -111,6 +113,7 @@ with torch.no_grad():
 
 tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
 text_model = RobertaModel.from_pretrained("roberta-base").to(device).eval()
+text_model.eval()
 
 
 already_processed = os.listdir(args.output_folder)
@@ -132,30 +135,31 @@ for video_name in tqdm(os.listdir(args.input_folder)):
     else:
         n_batches = int(len(frames) / args.batch_size) + 1
 
-    text_embeddings = None
-    for i in range(n_batches):
-        selected_frames = frames[i*args.batch_size:min(len(frames), (i+1)*args.batch_size)]
-        images = [preprocess(Image.open(args.input_folder + "/" + video_name + "/" + frame).convert("RGB")) for frame in selected_frames]
-        images = torch.tensor(np.stack(images)).cuda()
-        with torch.no_grad():
+    with torch.no_grad():
+        text_embeddings = None
+        for i in range(n_batches):
+            selected_frames = frames[i*args.batch_size:min(len(frames), (i+1)*args.batch_size)]
+            images = [preprocess(Image.open(args.input_folder + "/" + video_name + "/" + frame).convert("RGB")) for frame in selected_frames]
+            images = torch.tensor(np.stack(images)).cuda()
             image_features = clip_model.encode_image(images).float()
 
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-        similarity = image_features.cpu().numpy() @ text_features.cpu().numpy().T
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+            similarity = image_features.cpu().numpy() @ text_features.cpu().numpy().T
 
-        sentences = []
-        for j in range(len(similarity)):
-            sentences.append(templates[list(similarity[j]).index(max(similarity[j]))])
+            sentences = []
+            for j in range(len(similarity)):
+                sentences.append(templates[list(similarity[j]).index(max(similarity[j]))])
 
-        inputs = tokenizer(sentences, return_tensors="pt", padding='max_length', max_length=16, truncation=True).to(device)
-        outputs = text_model(**inputs)
-        cls_tokens = outputs.last_hidden_state[:, 0, :]
+            inputs = tokenizer(sentences, return_tensors="pt", padding='max_length', max_length=16, truncation=True).to(device)
+            outputs = text_model(**inputs)
+            cls_tokens = outputs.last_hidden_state[:, 0, :]
 
-        if text_embeddings == None:
-            text_embeddings = cls_tokens
-        else:
-            text_embeddings = torch.cat((text_embeddings, cls_tokens), 0)
-        
+            if text_embeddings == None:
+                text_embeddings = cls_tokens
+            else:
+                text_embeddings = torch.cat((text_embeddings, cls_tokens), 0)
+    
+    text_embeddings = text_embeddings.to(torch.device("cpu"))    
     torch.save(text_embeddings, args.output_folder + "/" + video_name + ".pt")
 
     

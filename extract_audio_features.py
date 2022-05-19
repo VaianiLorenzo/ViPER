@@ -44,6 +44,7 @@ if not os.path.exists(args.output_folder):
 
 feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("microsoft/wavlm-base-plus-sv")
 model = WavLMForXVector.from_pretrained("microsoft/wavlm-base-plus-sv").to(device)
+model.eval()
 
 already_processed = os.listdir(args.output_folder)
 
@@ -67,14 +68,16 @@ for audio in tqdm(os.listdir(args.input_folder)):
     else:
         n_batches = int(args.n_fragments / args.batch_size) + 1
 
-    audio_embeddings = None
-    for i in range(n_batches):
-        selected_windows = windows[i*args.batch_size:min(args.n_fragments, (i+1)*args.batch_size)]
-        inputs = (feature_extractor(windows, return_tensors="pt", sampling_rate=16000, padding="max_length", max_length=16000, truncation=True).input_values).to(device)   # processes audio frames
-        embeddings = model(inputs).embeddings
-        if audio_embeddings == None:
-            audio_embeddings = embeddings
-        else:
-            audio_embeddings = torch.cat((audio_embeddings, embeddings), 0)
+    with torch.no_grad():
+        audio_embeddings = None
+        for i in range(n_batches):
+            selected_windows = windows[i*args.batch_size:min(args.n_fragments, (i+1)*args.batch_size)]
+            inputs = (feature_extractor(windows, return_tensors="pt", sampling_rate=16000, padding="max_length", max_length=16000, truncation=True).input_values).to(device)   # processes audio frames
+            embeddings = model(inputs).embeddings
+            if audio_embeddings == None:
+                audio_embeddings = embeddings
+            else:
+                audio_embeddings = torch.cat((audio_embeddings, embeddings), 0)
 
+    audio_embeddings = audio_embeddings.to(torch.device("cpu"))
     torch.save(audio_embeddings, args.output_folder + "/" + audio_name + ".pt")

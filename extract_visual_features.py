@@ -62,16 +62,18 @@ for video_name in tqdm(os.listdir(args.input_folder)):
     else:
         n_batches = int(len(frames) / args.batch_size) + 1
     
-    image_embeddings = None
-    for i in range(n_batches):
-        selected_frames = frames[i*args.batch_size:min(len(frames), (i+1)*args.batch_size)]
-        images = [Image.open(args.input_folder + "/" + video_name + "/" + frame) for frame in selected_frames]
-        inputs = feature_extractor(images = images, return_tensors = "pt").to(device)
-        outputs = model(**inputs)
-        last_hidden_states = outputs.last_hidden_state[:, 0, :]
-        if image_embeddings == None:
-            image_embeddings = last_hidden_states
-        else:
-            image_embeddings = torch.cat((image_embeddings, last_hidden_states), 0)
+    with torch.no_grad():
+        image_embeddings = None
+        for i in range(n_batches):
+            selected_frames = frames[i*args.batch_size:min(len(frames), (i+1)*args.batch_size)]
+            images = [Image.open(args.input_folder + "/" + video_name + "/" + frame) for frame in selected_frames]
+            inputs = feature_extractor(images = images, return_tensors = "pt").to(device)
+            outputs = model(**inputs)
+            last_hidden_states = outputs.last_hidden_state[:, 0, :]
+            if image_embeddings == None:
+                image_embeddings = last_hidden_states
+            else:
+                image_embeddings = torch.cat((image_embeddings, last_hidden_states), 0)
         
+    image_embeddings = image_embeddings.to(torch.device("cpu"))
     torch.save(image_embeddings, args.output_folder + "/" + video_name + ".pt")
