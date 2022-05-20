@@ -21,7 +21,7 @@ python extract_visual_features.py \
   --input_folder data/frames \
   --output_folder data/features/visual \
   --batch_size 16 \
-  --incremental False
+  --no-incremental
 ```
 
 Extract audio features from raw audio files:
@@ -32,7 +32,7 @@ python extract_audio_features.py \
   --output_folder data/features/audio \
   --n_fragments 32 \
   --batch_size 32 \
-  --incremental False
+  --no-incremental
 ```
 
 Extract textual features from frames:
@@ -43,5 +43,5 @@ python extract_textual_features.py \
   --output_folder data/features/textual \
   --clip_checkpoint_path data/clip_model/model.pt \
   --batch_size 32 \
-  --incremental False
+  --no-incremental
 ```
