@@ -45,3 +45,22 @@ python extract_textual_features.py \
   --batch_size 32 \
   --no-incremental
 ```
+
+## Training
+
+Training Perceiver:
+
+```
+python train_perceiver.py \
+  --visual \
+  --audio \
+  --textual \
+  --visual_features_input_folder data/features/visual \
+  --audio_features_input_folder data/features/audio \
+  --textual_features_input_folder data/features/textual \
+  --csv_path data/data_info.csv \
+  --n_epochs 10 \
+  --batch_size 32 
+```
+
+
