@@ -178,7 +178,7 @@ print("Audio features:" , args.audio)
 print("Visual textual:" , args.textual)
 
 with open(args.output_log_file, "a") as f:
-    f.write("START TRAINING!\nVisual features:" , args.visual, "\nAudio features:" , args.audio, "\nVisual textual:" , args.textual, "\n")
+    f.write("START TRAINING!\nVisual features: " + str(args.visual) + "\nAudio features: " + str(args.audio) + "\nVisual textual: " + str(args.textual) + "\n")
 
 #training loop
 for i in range(args.n_epochs):
@@ -239,4 +239,4 @@ for i in range(args.n_epochs):
 
 print("Training completed! Best model found at epoch", best_epoch, "with an MSE value of", best_score, "!!!")
 with open((args.output_log_file), "a") as f:
-        f.write("Training completed! Best model found at epoch", best_epoch, "with an MSE value of", best_score, "!!!\n")
+        f.write("Training completed! Best model found at epoch " + str(best_epoch) + " with an MSE value of " + str(best_score) + "!!!\n")
