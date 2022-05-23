@@ -57,6 +57,11 @@ parser.add_argument(
     help="Output folder to store model checkpoints",
     default=None,
     required=True)
+parser.add_argument(
+    "--output_log_file",
+    help="Name to assign to the output log file",
+    default=None,
+    required=True)
 
 parser.add_argument(
     "--n_epochs",
@@ -68,7 +73,7 @@ parser.add_argument(
     "--batch_size",
     help="Training batch size",
     type=int,
-    default=32,
+    default=16,
     required=False)
 parser.add_argument(
     "--learning_rate",
@@ -80,7 +85,7 @@ parser.add_argument(
     "--log_steps",
     help="Number of batch to process before printing info (such as current learning rate and loss value)",
     type=int,
-    default=100,
+    default=10,
     required=False)
 
 
@@ -131,9 +136,6 @@ train_labels = torch.tensor(splits["Train"][['Adoration', 'Amusement', 'Anxiety'
 val_file_list = [file[1:-1]+".pt" for file in list(splits["Val"].File_ID)]
 val_labels = torch.tensor(splits["Val"][['Adoration', 'Amusement', 'Anxiety', 'Disgust', 'Empathic-Pain', 'Fear', 'Surprise']].values)
 
-train_file_list = ["00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt"]
-val_file_list = ["00100.pt", "00100.pt", "00100.pt", "00100.pt"]
-
 # compute the number of batches
 if len(train_file_list) % args.batch_size == 0:
     n_train_batches = int(len(train_file_list) / args.batch_size)
@@ -166,21 +168,27 @@ if args.textual:
         train_data = torch.cat((train_data, torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in train_file_list])), 2)
         val_data = torch.cat((val_data, torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in val_file_list])), 2)
 
-train_labels = train_labels[:train_data.shape[0], :]
-val_labels = val_labels[:val_data.shape[0], :]
-
-indexes = torch.randperm(train_data.shape[0])
-train_data = train_data[indexes, :, :]
-train_labels = train_labels[indexes, :]
-
 step_size = args.n_epochs * n_train_batches
 criterion = torch.nn.MSELoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma = 0.1)
 
+best_score = None
+
+print("START TRAINING!")
+print("Visual features:" , args.visual)
+print("Audio features:" , args.audio)
+print("Visual textual:" , args.textual)
+
+with open(args.output_log_file, "a") as f:
+    f.write("START TRAINING!\nVisual features:" , args.visual, "\nAudio features:" , args.audio, "\nVisual textual:" , args.textual, "\n")
+
 #training loop
 for i in range(args.n_epochs):
     current_loss = 0.0
+    indexes = torch.randperm(train_data.shape[0])
+    train_data = train_data[indexes, :, :]
+    train_labels = train_labels[indexes, :]
     print("Starting epoch", i+1)
     model.train()
     for j in tqdm(range(n_train_batches)):
@@ -202,19 +210,19 @@ for i in range(args.n_epochs):
         if j % args.log_steps == 0 and j != 0:
             print("LR:", scheduler.get_last_lr())
             print('Train loss at epoch %5d after mini-batch %5d: %.8f' % (i+1, j+1, current_loss / args.log_steps))
-            with open("log.txt", "a") as f:
+            with open(args.output_log_file, "a") as f:
                 f.write('Train loss at epoch %5d after mini-batch %5d: %.8f\n' % (i+1, j+1, current_loss / args.log_steps))
             current_loss = 0.0
     
-    model_name = "perceiver_" + str(i) + ".model"
+    model_name = "perceiver_" + str(i+1) + ".model"
     ckp_dir = args.output_checkpoint_folder + "/" + str(model_name) 
     torch.save(model, ckp_dir)
 
     model.eval()
     current_loss = 0.0
     for j in tqdm(range(n_val_batches)):
-        batch = val_data[j*args.batch_size:min(len(train_file_list), (j+1)*args.batch_size), :, :].to(device)
-        labels = val_labels[j*args.batch_size:min(len(train_file_list), (j+1)*args.batch_size), :].to(device).float()
+        batch = val_data[j*args.batch_size:min(len(val_file_list), (j+1)*args.batch_size), :, :].to(device)
+        labels = val_labels[j*args.batch_size:min(len(val_file_list), (j+1)*args.batch_size), :].to(device).float()
         outputs = model(inputs=batch)
         logits = outputs.logits
         loss = 0 
@@ -225,6 +233,13 @@ for i in range(args.n_epochs):
 
     print("LR:", scheduler.get_last_lr())
     print('Val loss after epoch %5d: %.8f' % (i+1, current_loss / args.log_steps))
-    with open("log.txt", "a") as f:
+    with open(args.output_log_file, "a") as f:
         f.write('Val loss after epoch %5d: %.8f\n' % (i+1, current_loss / args.log_steps))
+    if best_score == None or current_loss/args.log_steps < best_score:
+        best_score = current_loss / args.log_steps
+        best_epoch = i+1
         
+
+print("Training completed! Best model found at epoch", best_epoch, "with an MSE value of", best_score, "!!!")
+with open((args.output_log_file), "a") as f:
+        f.write("Training completed! Best model found at epoch", best_epoch, "with an MSE value of", best_score, "!!!\n")
