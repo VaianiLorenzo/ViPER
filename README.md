@@ -60,10 +60,11 @@ python train_perceiver.py \
   --textual_features_input_folder data/features/textual \
   --csv_path data/data_info.csv \
   --output_checkpoint_folder data/checkpoints \
+  --output_log_file data/log.txt \
   --n_epochs 10 \
-  --batch_size 32 \
+  --batch_size 16 \
   --learning_rate 1e-5 \
-  --log_steps 100
+  --log_steps 10
 ```
 
 
