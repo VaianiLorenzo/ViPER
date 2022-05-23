@@ -59,8 +59,11 @@ python train_perceiver.py \
   --audio_features_input_folder data/features/audio \
   --textual_features_input_folder data/features/textual \
   --csv_path data/data_info.csv \
+  --output_checkpoint_folder data/checkpoints \
   --n_epochs 10 \
-  --batch_size 32 
+  --batch_size 32 \
+  --learning_rate 1e-5 \
+  --log_steps 100
 ```
 
 
