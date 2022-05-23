@@ -1,4 +1,5 @@
 import os
+from posixpath import split
 from tqdm import tqdm
 import argparse
 import random
@@ -10,6 +11,7 @@ from transformers.models.perceiver.modeling_perceiver import (
     PerceiverClassificationDecoder,
 )
 import torch
+from torch import optim
 
 
 # Main
@@ -50,6 +52,11 @@ parser.add_argument(
     help="Input CSV containing labels and splits",
     default=None,
     required=True)
+parser.add_argument(
+    "--output_checkpoint_folder",
+    help="Output folder to store model checkpoints",
+    default=None,
+    required=True)
 
 parser.add_argument(
     "--n_epochs",
@@ -63,6 +70,19 @@ parser.add_argument(
     type=int,
     default=32,
     required=False)
+parser.add_argument(
+    "--learning_rate",
+    help="Learning rate",
+    type=float,
+    default=1e-5,
+    required=False)
+parser.add_argument(
+    "--log_steps",
+    help="Number of batch to process before printing info (such as current learning rate and loss value)",
+    type=int,
+    default=100,
+    required=False)
+
 
 args = parser.parse_args()
 
@@ -74,11 +94,17 @@ if (args.visual and args.visual_features_input_folder == None) or (args.audio an
     print("Args Error: an input path must be specified for each involved modality!")
     exit()
 
+# create output folder
+if not os.path.exists(args.output_checkpoint_folder):
+    os.mkdir(args.output_checkpoint_folder)
+
 # set device
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
+
+device = torch.device('cpu')
 
 # model initialization 
 token_size = int(args.visual) * 768 + int(args.audio) * 512 + int(args.textual) * 768
@@ -101,46 +127,104 @@ for name, group in groups:
     splits[name] = group
 
 train_file_list = [file[1:-1]+".pt" for file in list(splits["Train"].File_ID)]
+train_labels = torch.tensor(splits["Train"][['Adoration', 'Amusement', 'Anxiety', 'Disgust', 'Empathic-Pain', 'Fear', 'Surprise']].values)
 val_file_list = [file[1:-1]+".pt" for file in list(splits["Val"].File_ID)]
-test_file_list = [file[1:-1]+".pt" for file in list(splits["Test"].File_ID)]
+val_labels = torch.tensor(splits["Val"][['Adoration', 'Amusement', 'Anxiety', 'Disgust', 'Empathic-Pain', 'Fear', 'Surprise']].values)
 
-train_file_list = ["00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt"]
+train_file_list = ["00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt", "00100.pt"]
+val_file_list = ["00100.pt", "00100.pt", "00100.pt", "00100.pt"]
 
 # compute the number of batches
 if len(train_file_list) % args.batch_size == 0:
-    n_batches = int(len(train_file_list) / args.batch_size)
+    n_train_batches = int(len(train_file_list) / args.batch_size)
 else:
-    n_batches = int(len(train_file_list) / args.batch_size) + 1
+    n_train_batches = int(len(train_file_list) / args.batch_size) + 1
+if len(val_file_list) % args.batch_size == 0:
+    n_val_batches = int(len(val_file_list) / args.batch_size)
+else:
+    n_val_batches = int(len(val_file_list) / args.batch_size) + 1
 
 #loading data
-data = None
+train_data = None
+val_data = None
 if args.visual:
-    data = torch.stack([torch.load(args.visual_features_input_folder + "/" + file) for file in train_file_list])
-
+    train_data = torch.stack([torch.load(args.visual_features_input_folder + "/" + file) for file in train_file_list])
+    val_data = torch.stack([torch.load(args.visual_features_input_folder + "/" + file) for file in val_file_list])
 if args.audio:
-    if data == None:
-        data = torch.stack([torch.load(args.audio_features_input_folder + "/" + file) for file in train_file_list])
+    if train_data == None:
+        train_data = torch.stack([torch.load(args.audio_features_input_folder + "/" + file) for file in train_file_list])
+        val_data = torch.stack([torch.load(args.audio_features_input_folder + "/" + file) for file in val_file_list])
     else:
-        data = torch.cat((data, torch.stack([torch.load(args.audio_features_input_folder + "/" + file) for file in train_file_list])), 2)
+        train_data = torch.cat((train_data, torch.stack([torch.load(args.audio_features_input_folder + "/" + file) for file in train_file_list])), 2)
+        val_data = torch.cat((val_data, torch.stack([torch.load(args.audio_features_input_folder + "/" + file) for file in val_file_list])), 2)
 
 if args.textual:
-    if data == None:
-        data = torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in train_file_list])
+    if train_data == None:
+        train_data = torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in train_file_list])
+        val_data = torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in val_file_list])
     else:
-        data = torch.cat((data, torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in train_file_list])), 2)
+        train_data = torch.cat((train_data, torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in train_file_list])), 2)
+        val_data = torch.cat((val_data, torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in val_file_list])), 2)
+
+train_labels = train_labels[:train_data.shape[0], :]
+val_labels = val_labels[:val_data.shape[0], :]
+
+indexes = torch.randperm(train_data.shape[0])
+train_data = train_data[indexes, :, :]
+train_labels = train_labels[indexes, :]
+
+step_size = args.n_epochs * n_train_batches
+criterion = torch.nn.MSELoss()
+optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma = 0.1)
 
 #training loop
 for i in range(args.n_epochs):
+    current_loss = 0.0
     print("Starting epoch", i+1)
-    random.shuffle(train_file_list)
-    for j in tqdm(range(n_batches)):
-        batch = data[j*args.batch_size:min(len(train_file_list), (j+1)*args.batch_size), :, :].to(device)
+    model.train()
+    for j in tqdm(range(n_train_batches)):
+        optimizer.zero_grad()
+        batch = train_data[j*args.batch_size:min(len(train_file_list), (j+1)*args.batch_size), :, :].to(device)
+        labels = train_labels[j*args.batch_size:min(len(train_file_list), (j+1)*args.batch_size), :].to(device).float()
         outputs = model(inputs=batch)
         logits = outputs.logits
-        print(logits)
+        loss = 0 
+        for k in range(logits.shape[1]):
+            loss = loss + criterion(logits[:, k], labels[:, k])
+        loss = loss / logits.shape[1]
 
-        '''
-        criterion = torch.nn.CrossEntropyLoss()
-        labels = torch.tensor([args.batch_size])
-        loss = criterion(logits, labels)
-        '''
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
+        current_loss += loss.item()
+
+        if j % args.log_steps == 0 and j != 0:
+            print("LR:", scheduler.get_last_lr())
+            print('Train loss at epoch %5d after mini-batch %5d: %.8f' % (i+1, j+1, current_loss / args.log_steps))
+            with open("log.txt", "a") as f:
+                f.write('Train loss at epoch %5d after mini-batch %5d: %.8f\n' % (i+1, j+1, current_loss / args.log_steps))
+            current_loss = 0.0
+    
+    model_name = "perceiver_" + str(i) + ".model"
+    ckp_dir = args.output_checkpoint_folder + "/" + str(model_name) 
+    torch.save(model, ckp_dir)
+
+    model.eval()
+    current_loss = 0.0
+    for j in tqdm(range(n_val_batches)):
+        batch = val_data[j*args.batch_size:min(len(train_file_list), (j+1)*args.batch_size), :, :].to(device)
+        labels = val_labels[j*args.batch_size:min(len(train_file_list), (j+1)*args.batch_size), :].to(device).float()
+        outputs = model(inputs=batch)
+        logits = outputs.logits
+        loss = 0 
+        for k in range(logits.shape[1]):
+            loss = loss + criterion(logits[:, k], labels[:, k])
+        loss = loss / logits.shape[1]
+        current_loss += loss.item()
+
+    print("LR:", scheduler.get_last_lr())
+    print('Val loss after epoch %5d: %.8f' % (i+1, current_loss / args.log_steps))
+    with open("log.txt", "a") as f:
+        f.write('Val loss after epoch %5d: %.8f\n' % (i+1, current_loss / args.log_steps))
+        
