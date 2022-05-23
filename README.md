@@ -61,7 +61,7 @@ python train_perceiver.py \
   --csv_path data/data_info.csv \
   --output_checkpoint_folder data/checkpoints \
   --output_log_file data/log.txt \
-  --n_epochs 10 \
+  --n_epochs 50 \
   --batch_size 16 \
   --learning_rate 1e-5 \
   --log_steps 10
