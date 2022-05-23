@@ -109,8 +109,6 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
-device = torch.device('cpu')
-
 # model initialization 
 token_size = int(args.visual) * 768 + int(args.audio) * 512 + int(args.textual) * 768
 config = PerceiverConfig(d_model=token_size, num_labels=7)
@@ -124,7 +122,6 @@ model = PerceiverModel(config, decoder=decoder)
 model.to(device)
 
 # get the file list
-
 df = pd.read_csv(args.csv_path, sep=",")
 groups = df.groupby("Split")
 splits = {}
