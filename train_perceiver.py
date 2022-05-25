@@ -20,8 +20,6 @@ def calc_pearsons(preds,labels):
 def mean_pearsons(preds,labels):
     preds = np.row_stack([np.array(p) for p in preds])
     labels = np.row_stack([np.array(l) for l in labels])
-    print("PREDS:", preds)
-    print(preds.shape)
     num_classes = preds.shape[1]
     class_wise_r = np.array([calc_pearsons(preds[:,i], labels[:,i]) for i in range(num_classes)])
     mean_r = np.mean(class_wise_r)
@@ -100,6 +98,10 @@ parser.add_argument(
     type=int,
     default=10,
     required=False)
+rescale_parser = parser.add_mutually_exclusive_group(required=False)
+rescale_parser.add_argument('--rescale', dest='rescale', action='store_true')
+rescale_parser.add_argument('--no-rescale', dest='rescale', action='store_false')
+parser.set_defaults(rescale=False)
 
 
 args = parser.parse_args()
@@ -141,13 +143,10 @@ splits = {}
 for name, group in groups:
     splits[name] = group
 
-#train_file_list = [file[1:-1]+".pt" for file in list(splits["Train"].File_ID)]
-train_file_list = [file[1:-1]+".pt" for file in list(splits["Train"].File_ID) if file.startswith("[00") or file.startswith("[24")]
+train_file_list = [file[1:-1]+".pt" for file in list(splits["Train"].File_ID)]
 train_labels = torch.tensor(splits["Train"][['Adoration', 'Amusement', 'Anxiety', 'Disgust', 'Empathic-Pain', 'Fear', 'Surprise']].values)
-#val_file_list = [file[1:-1]+".pt" for file in list(splits["Val"].File_ID)]
-val_file_list = [file[1:-1]+".pt" for file in list(splits["Val"].File_ID) if file.startswith("[00") or file.startswith("[24")]
+val_file_list = [file[1:-1]+".pt" for file in list(splits["Val"].File_ID)]
 val_labels = torch.tensor(splits["Val"][['Adoration', 'Amusement', 'Anxiety', 'Disgust', 'Empathic-Pain', 'Fear', 'Surprise']].values)
-val_labels = val_labels[:len(val_file_list), :]
 
 # compute the number of batches
 if len(train_file_list) % args.batch_size == 0:
@@ -186,7 +185,8 @@ criterion = torch.nn.MSELoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma = 0.1)
 
-best_score = None
+best_mse_score = None
+best_correlation_score = None
 
 print("START TRAINING!")
 print("Visual features:" , args.visual)
@@ -211,6 +211,9 @@ for i in range(args.n_epochs):
         outputs = model(inputs=batch)
         logits = outputs.logits
         loss = 0 
+        if args.rescale:
+            for k in range(len(logits)):
+                logits[k] = logits[k]/max(logits[k]).item()
         for k in range(logits.shape[1]):
             loss = loss + criterion(logits[:, k], labels[:, k])
         loss = loss / logits.shape[1]
@@ -240,6 +243,9 @@ for i in range(args.n_epochs):
         outputs = model(inputs=batch)
         logits = outputs.logits
         loss = 0 
+        if args.rescale:
+            for k in range(len(logits)):
+                logits[k] = logits[k]/max(logits[k]).item()
         for k in range(logits.shape[1]):
             loss = loss + criterion(logits[:, k], labels[:, k])
         loss = loss / logits.shape[1]
@@ -256,11 +262,18 @@ for i in range(args.n_epochs):
     with open(args.output_log_file, "a") as f:
         f.write('Val loss after epoch %5d: %.8f\n' % (i+1, current_loss / n_val_batches))
         f.write('Pearson correlation after epoch %5d: %.8f\n' % (i+1, pearson))
-    if best_score == None or current_loss/n_val_batches < best_score:
-        best_score = current_loss / n_val_batches
-        best_epoch = i+1
+    if best_mse_score == None or current_loss/n_val_batches < best_mse_score:
+        best_mse_score = current_loss / n_val_batches
+        best_mse_epoch = i+1
+    if best_correlation_score == None or pearson > best_correlation_score:
+        best_correlation_score = pearson
+        best_correlation_epoch = i+1
         
 
-print("Training completed! Best model found at epoch", best_epoch, "with an MSE value of", best_score, "!!!")
+print("Training completed!")
+print("Best MSE model found at epoch", best_mse_epoch, "with an MSE value of", best_mse_score, "!!!")
+print("Best correlation model found at epoch", best_correlation_epoch, "with aPearson Correlation value of", best_correlation_score, "!!!")
 with open((args.output_log_file), "a") as f:
-        f.write("Training completed! Best model found at epoch " + str(best_epoch) + " with an MSE value of " + str(best_score) + "!!!\n")
+        f.write("Training completed!\n")
+        f.write("Best MSE model found at epoch " + str(best_mse_epoch) + " with an MSE value of " + str(best_mse_score) + "!!!\n")
+        f.write("Best correlation model found at epoch " + str(best_correlation_epoch) + " with a Pearson Correlation value of " + str(best_correlation_score) + "!!!\n")
