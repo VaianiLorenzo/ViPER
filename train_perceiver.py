@@ -1,18 +1,31 @@
 import os
-from posixpath import split
 from tqdm import tqdm
 import argparse
-import random
 import pandas as pd
-from transformers import PerceiverConfig, PerceiverTokenizer, PerceiverFeatureExtractor, PerceiverModel
+import numpy as np
+from transformers import PerceiverConfig, PerceiverModel
 from transformers.models.perceiver.modeling_perceiver import (
-    PerceiverTextPreprocessor,
-    PerceiverImagePreprocessor,
     PerceiverClassificationDecoder,
 )
 import torch
 from torch import optim
+from scipy import stats 
 
+
+# Functions
+def calc_pearsons(preds,labels):
+    r = stats.pearsonr(preds, labels)
+    return r[0]
+
+def mean_pearsons(preds,labels):
+    preds = np.row_stack([np.array(p) for p in preds])
+    labels = np.row_stack([np.array(l) for l in labels])
+    print("PREDS:", preds)
+    print(preds.shape)
+    num_classes = preds.shape[1]
+    class_wise_r = np.array([calc_pearsons(preds[:,i], labels[:,i]) for i in range(num_classes)])
+    mean_r = np.mean(class_wise_r)
+    return mean_r
 
 # Main
 parser = argparse.ArgumentParser(description="Train Perceiver")
@@ -128,10 +141,13 @@ splits = {}
 for name, group in groups:
     splits[name] = group
 
-train_file_list = [file[1:-1]+".pt" for file in list(splits["Train"].File_ID)]
+#train_file_list = [file[1:-1]+".pt" for file in list(splits["Train"].File_ID)]
+train_file_list = [file[1:-1]+".pt" for file in list(splits["Train"].File_ID) if file.startswith("[00") or file.startswith("[24")]
 train_labels = torch.tensor(splits["Train"][['Adoration', 'Amusement', 'Anxiety', 'Disgust', 'Empathic-Pain', 'Fear', 'Surprise']].values)
-val_file_list = [file[1:-1]+".pt" for file in list(splits["Val"].File_ID)]
+#val_file_list = [file[1:-1]+".pt" for file in list(splits["Val"].File_ID)]
+val_file_list = [file[1:-1]+".pt" for file in list(splits["Val"].File_ID) if file.startswith("[00") or file.startswith("[24")]
 val_labels = torch.tensor(splits["Val"][['Adoration', 'Amusement', 'Anxiety', 'Disgust', 'Empathic-Pain', 'Fear', 'Surprise']].values)
+val_labels = val_labels[:len(val_file_list), :]
 
 # compute the number of batches
 if len(train_file_list) % args.batch_size == 0:
@@ -177,7 +193,7 @@ print("Visual features:" , args.visual)
 print("Audio features:" , args.audio)
 print("Visual textual:" , args.textual)
 
-with open(args.output_log_file, "a") as f:
+with open(args.output_log_file, "w") as f:
     f.write("START TRAINING!\nVisual features: " + str(args.visual) + "\nAudio features: " + str(args.audio) + "\nVisual textual: " + str(args.textual) + "\n")
 
 #training loop
@@ -217,6 +233,7 @@ for i in range(args.n_epochs):
 
     model.eval()
     current_loss = 0.0
+    preds = None
     for j in tqdm(range(n_val_batches)):
         batch = val_data[j*args.batch_size:min(len(val_file_list), (j+1)*args.batch_size), :, :].to(device)
         labels = val_labels[j*args.batch_size:min(len(val_file_list), (j+1)*args.batch_size), :].to(device).float()
@@ -227,13 +244,20 @@ for i in range(args.n_epochs):
             loss = loss + criterion(logits[:, k], labels[:, k])
         loss = loss / logits.shape[1]
         current_loss += loss.item()
+        if preds == None:
+            preds = logits.detach().cpu()
+        else:
+            preds = torch.cat((preds, logits.detach().cpu()), 0)
+    pearson = mean_pearsons(preds, val_labels.detach().cpu())
 
     print("LR:", scheduler.get_last_lr())
-    print('Val loss after epoch %5d: %.8f' % (i+1, current_loss / args.log_steps))
+    print('Val loss after epoch %5d: %.8f' % (i+1, current_loss / n_val_batches))
+    print('Val pearson correlation after epoch %5d: %.8f' % (i+1, pearson))
     with open(args.output_log_file, "a") as f:
-        f.write('Val loss after epoch %5d: %.8f\n' % (i+1, current_loss / args.log_steps))
-    if best_score == None or current_loss/args.log_steps < best_score:
-        best_score = current_loss / args.log_steps
+        f.write('Val loss after epoch %5d: %.8f\n' % (i+1, current_loss / n_val_batches))
+        f.write('Pearson correlation after epoch %5d: %.8f\n' % (i+1, pearson))
+    if best_score == None or current_loss/n_val_batches < best_score:
+        best_score = current_loss / n_val_batches
         best_epoch = i+1
         
 
