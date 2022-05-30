@@ -14,6 +14,14 @@ python get_frame.py \
   --n_workers 16
 ```
 
+Image cropping to detect people faces:
+
+```
+python crop_images.py \
+  --input_folder data/frames \
+  --output_folder data/frames_cropped \
+```
+
 Extract visual features from frames:
 
 ```
