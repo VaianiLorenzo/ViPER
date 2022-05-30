@@ -1,0 +1,3 @@
+[submodule "yoloface"]
+	path = yoloface
+	url = https://github.com/elyha7/yoloface.git
