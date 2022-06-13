@@ -38,7 +38,7 @@ model = YoloDetector(target_size=720,gpu=device,min_face=90)
 for video in os.listdir(args.input_folder):
     if not os.path.exists(os.path.join(args.output_folder, video)):
         os.mkdir(os.path.join(args.output_folder, video))
-    elif len(os.listdir(os.path.join(args.output_folder, video))) == 32:
+    elif len(os.listdir(os.path.join(args.output_folder, video))) == 32 or video.startswith("."):
         continue
     frames = os.listdir(os.path.join(args.input_folder, video))
 
