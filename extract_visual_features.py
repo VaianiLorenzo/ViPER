@@ -78,14 +78,12 @@ for video_name in tqdm(os.listdir(args.input_folder)):
             selected_frames = frames[i*args.batch_size:min(len(frames), (i+1)*args.batch_size)]
             images = [Image.open(args.input_folder + "/" + video_name + "/" + frame) for frame in selected_frames]
             inputs = feature_extractor(images = images, return_tensors = "pt").to(device)
-            outputs = model(**inputs)
-            print("OUTPUT:", outputs)
-            last_hidden_states = outputs.last_hidden_state[:, 0, :]
-            print("LHS:", last_hidden_states)
+            outputs = model(**inputs, output_hidden_states=True)
+            last_hidden_state = outputs.hidden_states[-1][:, 0, :]
             if image_embeddings == None:
-                image_embeddings = last_hidden_states
+                image_embeddings = last_hidden_state
             else:
-                image_embeddings = torch.cat((image_embeddings, last_hidden_states), 0)
+                image_embeddings = torch.cat((image_embeddings, last_hidden_state), 0)
         
     image_embeddings = image_embeddings.to(torch.device("cpu"))
     torch.save(image_embeddings, args.output_folder + "/" + video_name + ".pt")
