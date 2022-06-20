@@ -29,6 +29,7 @@ Extract visual features from frames:
 python extract_visual_features.py \
   --input_folder data/frames \
   --output_folder data/features/visual \
+  --model_name vit-base \
   --batch_size 16 \
   --no-incremental
 ```
