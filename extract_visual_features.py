@@ -1,4 +1,4 @@
-from transformers import ViTFeatureExtractor, ViTModel
+from transformers import ViTFeatureExtractor, ViTModel, ViTForImageClassification
 from PIL import Image
 import argparse
 import os
@@ -16,6 +16,11 @@ parser.add_argument(
         help="Output folder containing the extracted visual features",
         required=True)
 parser.add_argument(
+        "--model_name",
+        help="ViT version to use to extract visual features. ['vit-base', 'vit-age']",
+        required=True,
+        choices=['vit-base', 'vit-age'])
+parser.add_argument(
         "--batch_size",
         help="Number of frame to process in parallel",
         type=int,
@@ -26,20 +31,27 @@ incremental_parser.add_argument('--incremental', dest='incremental', action='sto
 incremental_parser.add_argument('--no-incremental', dest='incremental', action='store_false')
 parser.set_defaults(incremental=False)
 
+args = parser.parse_args()
+if not os.path.exists(args.output_folder):
+        os.mkdir(args.output_folder)
+
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
 
 # model initialization
-feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k")
-model = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
+if args.model_name == "vit-base":
+    feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k")
+    model = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
+elif args.model_name == "vit-age":
+    feature_extractor = ViTFeatureExtractor.from_pretrained('nateraw/vit-age-classifier')
+    model = ViTForImageClassification.from_pretrained('nateraw/vit-age-classifier')
+else:
+    print("Invalid model name!")
+    exit()
 model.to(device)
 model.eval()
-
-args = parser.parse_args()
-if not os.path.exists(args.output_folder):
-        os.mkdir(args.output_folder)
 
 already_processed = os.listdir(args.output_folder)
 
@@ -67,7 +79,9 @@ for video_name in tqdm(os.listdir(args.input_folder)):
             images = [Image.open(args.input_folder + "/" + video_name + "/" + frame) for frame in selected_frames]
             inputs = feature_extractor(images = images, return_tensors = "pt").to(device)
             outputs = model(**inputs)
+            print("OUTPUT:", outputs)
             last_hidden_states = outputs.last_hidden_state[:, 0, :]
+            print("LHS:", last_hidden_states)
             if image_embeddings == None:
                 image_embeddings = last_hidden_states
             else:
