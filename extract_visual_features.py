@@ -1,4 +1,4 @@
-from transformers import ViTFeatureExtractor, ViTModel, ViTForImageClassification
+from transformers import ViTFeatureExtractor, ViTModel
 from PIL import Image
 import argparse
 import os
@@ -46,7 +46,7 @@ if args.model_name == "vit-base":
     model = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
 elif args.model_name == "vit-age":
     feature_extractor = ViTFeatureExtractor.from_pretrained('nateraw/vit-age-classifier')
-    model = ViTForImageClassification.from_pretrained('nateraw/vit-age-classifier')
+    model = ViTModel.from_pretrained('nateraw/vit-age-classifier')
 else:
     print("Invalid model name!")
     exit()
@@ -79,7 +79,7 @@ for video_name in tqdm(os.listdir(args.input_folder)):
             images = [Image.open(args.input_folder + "/" + video_name + "/" + frame) for frame in selected_frames]
             inputs = feature_extractor(images = images, return_tensors = "pt").to(device)
             outputs = model(**inputs, output_hidden_states=True)
-            last_hidden_state = outputs.hidden_states[-1][:, 0, :]
+            last_hidden_state = outputs.last_hidden_state[:, 0, :]
             if image_embeddings == None:
                 image_embeddings = last_hidden_state
             else:
