@@ -205,7 +205,7 @@ if args.FAU:
 step_size = args.step_size * n_train_batches
 criterion = torch.nn.MSELoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma = 0.1)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma = 0.5)
 
 best_mse_score = None
 best_correlation_score = None
