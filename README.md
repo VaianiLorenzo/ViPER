@@ -65,15 +65,18 @@ python train_perceiver.py \
   --visual \
   --audio \
   --textual \
-  --visual_features_input_folder data/features/visual \
+  --FAU \
+  --visual_features_input_folder data/features/visual_cropped_age \
   --audio_features_input_folder data/features/audio \
-  --textual_features_input_folder data/features/textual \
+  --textual_features_input_folder data/features/textual_cropped \
+  --FAU_features_input_folder data/features/FAU \
   --csv_path data/data_info.csv \
   --output_checkpoint_folder data/checkpoints \
   --output_log_file data/log.txt \
   --n_epochs 50 \
   --batch_size 16 \
   --learning_rate 1e-5 \
+  --step_size 10 \
   --log_steps 10
 ```
 
