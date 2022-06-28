@@ -83,7 +83,6 @@ parser.add_argument(
     help="Name to assign to the output log file",
     default=None,
     required=True)
-
 parser.add_argument(
     "--n_epochs",
     help="Training epochs",
@@ -101,6 +100,12 @@ parser.add_argument(
     help="Learning rate",
     type=float,
     default=1e-5,
+    required=False)
+parser.add_argument(
+    "--step_size",
+    help="Number of epochs before reducing the LR",
+    type=int,
+    default=10,
     required=False)
 parser.add_argument(
     "--log_steps",
@@ -197,7 +202,7 @@ if args.FAU:
         train_data = torch.cat((train_data, torch.stack([torch.load(args.FAU_features_input_folder + "/" + file) for file in train_file_list])), 2)
         val_data = torch.cat((val_data, torch.stack([torch.load(args.FAU_features_input_folder + "/" + file) for file in val_file_list])), 2)
 
-step_size = args.n_epochs * n_train_batches
+step_size = args.step_size * n_train_batches
 criterion = torch.nn.MSELoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma = 0.1)
