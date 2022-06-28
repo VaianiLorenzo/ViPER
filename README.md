@@ -77,4 +77,20 @@ python train_perceiver.py \
   --log_steps 10
 ```
 
+## Evaluation
 
+Confusion matrix:
+
+```
+python confusion_matrix.py \
+  --emotion Adoration \
+  --visual \
+  --audio \
+  --textual \
+  --visual_features_input_folder data/features/visual_cropped_age \
+  --audio_features_input_folder data/features/audio \
+  --textual_features_input_folder data/features/textual_cropped \
+  --csv_path data/data_info.csv \
+  --model_path data/checkpoints_VAT_cropped_age/perceiver_8.model \
+  --batch_size 16 
+```
