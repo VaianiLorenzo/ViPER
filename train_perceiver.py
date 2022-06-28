@@ -43,6 +43,11 @@ textual_parser.add_argument('--textual', dest='textual', action='store_true')
 textual_parser.add_argument('--no-textual', dest='textual', action='store_false')
 parser.set_defaults(textual=True)
 
+FAU_parser = parser.add_mutually_exclusive_group(required=False)
+FAU_parser.add_argument('--FAU', dest='FAU', action='store_true')
+FAU_parser.add_argument('--no-FAU', dest='FAU', action='store_false')
+parser.set_defaults(FAU=True)
+
 parser.add_argument(
     "--visual_features_input_folder",
     help="Input folder containing the extracted visual features",
@@ -56,6 +61,11 @@ parser.add_argument(
 parser.add_argument(
     "--textual_features_input_folder",
     help="Input folder containing the extracted textual features",
+    default=None,
+    required=False)
+parser.add_argument(
+    "--FAU_features_input_folder",
+    help="Input folder containing the extracted FAU features",
     default=None,
     required=False)
 parser.add_argument(
@@ -103,7 +113,6 @@ rescale_parser.add_argument('--rescale', dest='rescale', action='store_true')
 rescale_parser.add_argument('--no-rescale', dest='rescale', action='store_false')
 parser.set_defaults(rescale=False)
 
-
 args = parser.parse_args()
 
 # check conditions
@@ -125,7 +134,7 @@ else:
     device = torch.device('cpu')
 
 # model initialization 
-token_size = int(args.visual) * 768 + int(args.audio) * 512 + int(args.textual) * 768
+token_size = int(args.visual) * 768 + int(args.audio) * 512 + int(args.textual) * 768 + int(args.FAU) * 27
 config = PerceiverConfig(d_model=token_size, num_labels=7)
 decoder = PerceiverClassificationDecoder(
     config,
@@ -180,6 +189,14 @@ if args.textual:
         train_data = torch.cat((train_data, torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in train_file_list])), 2)
         val_data = torch.cat((val_data, torch.stack([torch.load(args.textual_features_input_folder + "/" + file) for file in val_file_list])), 2)
 
+if args.FAU:
+    if train_data == None:
+        train_data = torch.stack([torch.load(args.FAU_features_input_folder + "/" + file) for file in train_file_list])
+        val_data = torch.stack([torch.load(args.FAU_features_input_folder + "/" + file) for file in val_file_list])
+    else:
+        train_data = torch.cat((train_data, torch.stack([torch.load(args.FAU_features_input_folder + "/" + file) for file in train_file_list])), 2)
+        val_data = torch.cat((val_data, torch.stack([torch.load(args.FAU_features_input_folder + "/" + file) for file in val_file_list])), 2)
+
 step_size = args.n_epochs * n_train_batches
 criterion = torch.nn.MSELoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
@@ -191,10 +208,11 @@ best_correlation_score = None
 print("START TRAINING!")
 print("Visual features:" , args.visual)
 print("Audio features:" , args.audio)
-print("Visual textual:" , args.textual)
+print("Textual features:" , args.textual)
+print("FAU features:" , args.FAU)
 
 with open(args.output_log_file, "w") as f:
-    f.write("START TRAINING!\nVisual features: " + str(args.visual) + "\nAudio features: " + str(args.audio) + "\nVisual textual: " + str(args.textual) + "\n")
+    f.write("START TRAINING!\nVisual features: " + str(args.visual) + "\nAudio features: " + str(args.audio) + "\nTextual features: " + str(args.textual) + "\nFAU features: " + str(args.FAU) + "\n")
 
 #training loop
 for i in range(args.n_epochs):
