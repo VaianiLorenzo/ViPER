@@ -137,6 +137,7 @@ if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
+device = torch.device('cpu')
 
 # model initialization 
 token_size = int(args.visual) * 768 + int(args.audio) * 512 + int(args.textual) * 768 + int(args.FAU) * 32
@@ -196,11 +197,11 @@ if args.textual:
 
 if args.FAU:
     if train_data == None:
-        train_data = torch.stack([torch.cat((torch.load(args.FAU_features_input_folder + "/" + file), torch.zeros(5)), 1) for file in train_file_list])
-        val_data = torch.stack([torch.cat((torch.load(args.FAU_features_input_folder + "/" + file), torch.zeros(5)), 1) for file in val_file_list])
+        train_data = torch.stack([torch.cat((torch.load(args.FAU_features_input_folder + "/" + file).to(dtype=torch.float32), torch.zeros(32,5).to(dtype=torch.float32)), 1) for file in train_file_list])
+        val_data = torch.stack([torch.cat((torch.load(args.FAU_features_input_folder + "/" + file).to(dtype=torch.float32), torch.zeros(32,5).to(dtype=torch.float32)), 1) for file in val_file_list])
     else:
-        train_data = torch.cat((train_data, torch.stack([torch.cat((torch.load(args.FAU_features_input_folder + "/" + file), torch.zeros(5)), 1) for file in train_file_list])), 2)
-        val_data = torch.cat((val_data, torch.stack([torch.cat((torch.load(args.FAU_features_input_folder + "/" + file), torch.zeros(5)), 1) for file in val_file_list])), 2)
+        train_data = torch.cat((train_data, torch.stack([torch.cat((torch.load(args.FAU_features_input_folder + "/" + file).to(dtype=torch.float32), torch.zeros(32,5).to(dtype=torch.float32)), 1) for file in train_file_list])), 2)
+        val_data = torch.cat((val_data, torch.stack([torch.cat((torch.load(args.FAU_features_input_folder + "/" + file).to(dtype=torch.float32), torch.zeros(32,5).to(dtype=torch.float32)), 1) for file in val_file_list])), 2)
 
 step_size = args.step_size * n_train_batches
 criterion = torch.nn.MSELoss()
