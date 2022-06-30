@@ -137,7 +137,6 @@ if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
-device = torch.device('cpu')
 
 # model initialization 
 token_size = int(args.visual) * 768 + int(args.audio) * 512 + int(args.textual) * 768 + int(args.FAU) * 32
