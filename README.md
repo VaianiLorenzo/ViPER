@@ -96,7 +96,7 @@ python submission_creation.py \
   --FAU_features_input_folder data/features/FAU \
   --csv_path data/data_info.csv \
   --output_path data/submissions/submission.csv \
-  --model_path data/checkpoints_VATF_cropped_age/perceiver_7.model \
+  --model_path data/checkpoints/checkpoints_VATF_cropped_age/perceiver_7.model \
   --batch_size 32
 ```
 
@@ -113,6 +113,6 @@ python confusion_matrix.py \
   --textual_features_input_folder data/features/textual_cropped \
   --FAU_features_input_folder data/features/FAU \
   --csv_path data/data_info.csv \
-  --model_path data/checkpoints_VATF_cropped_age/perceiver_7.model \
+  --model_path data/checkpoints/checkpoints_VATF_cropped_age/perceiver_7.model \
   --batch_size 32
 ```
