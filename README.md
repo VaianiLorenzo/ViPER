@@ -82,6 +82,24 @@ python train_perceiver.py \
 
 ## Evaluation
 
+Test Predictions:
+
+```
+python submission_creation.py \
+  --visual \
+  --audio \
+  --textual \
+  --FAU \
+  --visual_features_input_folder data/features/visual_cropped_age \
+  --audio_features_input_folder data/features/audio \
+  --textual_features_input_folder data/features/textual_cropped \
+  --FAU_features_input_folder data/features/FAU \
+  --csv_path data/data_info.csv \
+  --output_path data/submissions/submission.csv \
+  --model_path data/checkpoints_VATF_cropped_age/perceiver_7.model \
+  --batch_size 32
+```
+
 Confusion matrix:
 
 ```
