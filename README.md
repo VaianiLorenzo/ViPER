@@ -86,14 +86,15 @@ Confusion matrix:
 
 ```
 python confusion_matrix.py \
-  --emotion Adoration \
   --visual \
   --audio \
   --textual \
+  --FAU \
   --visual_features_input_folder data/features/visual_cropped_age \
   --audio_features_input_folder data/features/audio \
   --textual_features_input_folder data/features/textual_cropped \
+  --FAU_features_input_folder data/features/FAU \
   --csv_path data/data_info.csv \
-  --model_path data/checkpoints_VAT_cropped_age/perceiver_8.model \
-  --batch_size 16 
+  --model_path data/checkpoints_VATF_cropped_age/perceiver_7.model \
+  --batch_size 32
 ```
