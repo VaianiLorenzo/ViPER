@@ -166,7 +166,7 @@ with torch.no_grad():
         #labels = val_labels[j*args.batch_size:min(len(val_file_list), (j+1)*args.batch_size), :].to(device).float()
         outputs = model(inputs=batch)
         logits = outputs.logits
-        
+
         if preds == None:
             preds = logits.detach().cpu()
         else:
