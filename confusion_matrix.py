@@ -14,6 +14,8 @@ from scipy import stats
 from sklearn.metrics import confusion_matrix
 
 import seaborn as sns
+from matplotlib import pyplot
+
 
 
 # Functions
@@ -175,15 +177,23 @@ with torch.no_grad():
     for i in range(len(emotions)):
         preds_discretized.append([int(e[i]/0.1) if e[i] < 1 else 9 for e in preds])
         labels_discretized.append([int(e[i]/0.1) if e[i] < 1 else 9 for e in val_labels])
-        cm = confusion_matrix(labels_discretized[i], preds_discretized[i])
+        cm = confusion_matrix(labels_discretized[i], preds_discretized[i]).astype(np.float32)
+
+        for j in range(len(cm)):
+            cm[j] = cm[j] / sum(cm[j])
 
         print("Pearson Correlation of", emotions[i], "emotion:", calc_pearsons([e[i] for e in preds], [e[i] for e in val_labels]))
         print("Confusion Matrix of", emotions[i], "emotion:\n", cm, "\n\n")
 
-        ax = sns.heatmap(cm, cmap="Blues", yticklabels=y_axis_labels)
+        pyplot.figure(figsize=(15, 10))
+        sns.set(font_scale=1.8)
+        ax = sns.heatmap(cm, cmap="Blues", annot=True, fmt=".2f")
+        ax.set_xlabel("Predicted", fontsize = 22)
+        ax.set_ylabel("Gold Standard", fontsize = 22)
         ax.set_xticklabels(x_axis_labels, rotation=45)
+        ax.set_yticklabels(y_axis_labels, rotation=0)
         fig = ax.get_figure()
-        fig.savefig("data/heatmaps/heatmap_" + emotions[i] + ".png")
+        fig.savefig("data/heatmaps/heatmap_" + emotions[i] + ".png", bbox_inches='tight')
         fig.clf()
 
     preds_classification = [np.argmax(e) for e in preds]
@@ -191,14 +201,16 @@ with torch.no_grad():
     cm = confusion_matrix(labels_classification, preds_classification)
     print("Confusion Matrix of emotion classification:\n", cm, "\n\n")
 
-    ax = sns.heatmap(cm, cmap="Blues", yticklabels=emotions)
+    '''
+    ax = sns.heatmap(cm, cmap="Blues", annot=True, yticklabels=emotions)
     ax.set_xticklabels(emotions, rotation=45)
     fig = ax.get_figure()
-    fig.savefig("data/heatmaps/heatmap_emotion_classification.png")
+    fig.savefig("data/heatmaps/heatmap_emotion_classification.png", bbox_inches='tight')
     fig.clf()
     
     pearson = mean_pearsons(preds, val_labels.detach().cpu())
     print("PEARSON Correlation:", pearson)
+    '''
 
 
 
