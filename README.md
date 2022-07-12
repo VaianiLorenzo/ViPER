@@ -1,6 +1,8 @@
 # MuSe2022
 
-Lorem ipsum
+This repository contains the code for the paper "ViPER: Video-based Perceiver for Emotion Recognition" submitted for the MuSe 2022 Reaction Sub-Challenge.
+
+Additional information will be provided upon paper acceptance.
 
 ## Pretraining
 
