@@ -4,6 +4,8 @@ This repository contains the code for the paper "ViPER: Video-based Perceiver fo
 
 Recognizing human emotions from videos requires a deep understanding of the underlying multimodal sources, including images, audio, and text. Since the input data sources are highly variable across different modality combinations, leveraging multiple modalities often requires ad hoc fusion networks. To predict the emotional arousal of a person reacting to a given video clip we present ViPER, a multimodal architecture leveraging a modality-agnostic transformer-based model to combine video frames, audio recordings, and textual annotations. Specifically, it relies on a modalityagnostic late fusion network which makes ViPER easily adaptable to different modalities. The experiments carried out on the HumeReaction datasets of the MuSe-Reaction challenge confirm the effectiveness of the proposed approach.
 
+<img src="ViPER.jpg">
+
 ## Pretraining
 
 Extract frames from videos:
