@@ -1,15 +1,15 @@
 # ViPER
 
-This repository contains the code for the paper "ViPER: Video-based Perceiver for Emotion Recognition" submitted for the [MuSe 2022]([https://link-url-here.org](https://www.muse-challenge.org/muse2022)) Reaction Sub-Challenge.
+This repository contains the code for the paper "ViPER: Video-based Perceiver for Emotion Recognition" submitted for the [MuSe 2022](https://www.muse-challenge.org/muse2022) Reaction Sub-Challenge.
 
-Additional information will be provided upon paper acceptance.
+Recognizing human emotions from videos requires a deep understanding of the underlying multimodal sources, including images, audio, and text. Since the input data sources are highly variable across different modality combinations, leveraging multiple modalities often requires ad hoc fusion networks. To predict the emotional arousal of a person reacting to a given video clip we present ViPER, a multimodal architecture leveraging a modality-agnostic transformer-based model to combine video frames, audio recordings, and textual annotations. Specifically, it relies on a modalityagnostic late fusion network which makes ViPER easily adaptable to different modalities. The experiments carried out on the HumeReaction datasets of the MuSe-Reaction challenge confirm the effectiveness of the proposed approach.
 
 ## Pretraining
 
 Extract frames from videos:
 
 ```
-python get_frame.py \
+$ python get_frame.py \
   --input_folder data/mp4 \
   --output_folder data/frames \
   --n_frames 32 \
@@ -19,7 +19,7 @@ python get_frame.py \
 Image cropping to detect people faces:
 
 ```
-python crop_images.py \
+$ python crop_images.py \
   --input_folder data/frames \
   --output_folder data/frames_cropped \
   --batch_size 16 
@@ -28,7 +28,7 @@ python crop_images.py \
 Extract visual features from frames:
 
 ```
-python extract_visual_features.py \
+$ python extract_visual_features.py \
   --input_folder data/frames \
   --output_folder data/features/visual \
   --model_name vit-base \
@@ -39,7 +39,7 @@ python extract_visual_features.py \
 Extract audio features from raw audio files:
 
 ```
-python extract_audio_features.py \
+$ python extract_audio_features.py \
   --input_folder data/wav \
   --output_folder data/features/audio \
   --n_fragments 32 \
@@ -50,7 +50,7 @@ python extract_audio_features.py \
 Extract textual features from frames:
 
 ```
-python extract_textual_features.py \
+$ python extract_textual_features.py \
   --input_folder data/frames \
   --output_folder data/features/textual \
   --clip_checkpoint_path data/clip_model/model.pt \
@@ -63,7 +63,7 @@ python extract_textual_features.py \
 Training Perceiver:
 
 ```
-python train_perceiver.py \
+$ python train_perceiver.py \
   --visual \
   --audio \
   --textual \
@@ -87,7 +87,7 @@ python train_perceiver.py \
 Test Predictions:
 
 ```
-python submission_creation.py \
+$ python submission_creation.py \
   --visual \
   --audio \
   --textual \
@@ -105,7 +105,7 @@ python submission_creation.py \
 Confusion matrix:
 
 ```
-python confusion_matrix.py \
+$ python confusion_matrix.py \
   --visual \
   --audio \
   --textual \
@@ -118,3 +118,26 @@ python confusion_matrix.py \
   --model_path data/checkpoints/checkpoints_VATF_cropped_age/perceiver_7.model \
   --batch_size 32
 ```
+
+## Citation
+```
+@inproceedings{10.1145/3551876.3554806,
+  author = {Vaiani, Lorenzo and La Quatra, Moreno and Cagliero, Luca and Garza, Paolo},
+  title = {ViPER: Video-Based Perceiver for Emotion Recognition},
+  year = {2022},
+  isbn = {9781450394840},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3551876.3554806},
+  doi = {10.1145/3551876.3554806},
+  booktitle = {Proceedings of the 3rd International on Multimodal Sentiment Analysis Workshop and Challenge},
+  pages = {67–73},
+  numpages = {7},
+  keywords = {emotion recognition, modality-agnostic learning, multimodal learning, video processing},
+  location = {Lisboa, Portugal},
+  series = {MuSe' 22}
+}
+```
+
+
+
