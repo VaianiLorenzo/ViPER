@@ -1,4 +1,4 @@
-# ViPER
+# ViPER: Video-based Perceiver for Emotion Recognition
 
 This repository contains the code for the paper "ViPER: Video-based Perceiver for Emotion Recognition" submitted for the [MuSe 2022](https://www.muse-challenge.org/muse2022) Reaction Sub-Challenge.
 
